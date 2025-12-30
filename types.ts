@@ -13,6 +13,11 @@ export interface DataConfig {
   query: string;
   valueMapping: string;
   previousValueField: string;
+  lastRunData?: {
+    current: number;
+    compare: number;
+    dod: number;
+  };
 }
 
 export interface DisplayConfig {
@@ -36,16 +41,20 @@ export interface DisplayConfig {
     comparisonSize: number;
   };
   formatting: {
-    dataType: string;
-    displayFormat: string;
+    dataType: 'Number' | 'Currency' | 'Percentage';
+    displayFormat: 'Full' | 'Compact';
     decimalPlaces: number;
     useThousandsSeparator: boolean;
+    prefix: string;
+    suffix: string;
   };
   style: {
     backgroundColor: string;
     titleColor: string;
     valueColor: string;
     subTextColor: string;
+    trendUpColor: string;
+    trendDownColor: string;
   };
 }
 
@@ -55,7 +64,7 @@ export const DEFAULT_CONFIG: MetricConfig = {
   dataConfig: {
     datasetType: 'Real-time',
     dataSource: 'view_jus_vn_billing_delivery_recharge',
-    referenceKey: '',
+    referenceKey: 'GB_001',
     query: `SELECT 
 SUM(CASE WHEN order_created_datetime=date'2025-12-02' then total_rev_vnd end)/1 current,
 SUM(CASE WHEN order_created_datetime=date'2025-12-01' then total_rev_vnd end)/1 compare,
@@ -63,17 +72,22 @@ SUM(CASE WHEN order_created_datetime=date'2025-12-01' then total_rev_vnd end)/1 
 FROM view_jus_vn_billing_delivery_recharge
 WHERE order_created_datetime in (date'2025-12-02',date'2025-12-01')`,
     valueMapping: 'current',
-    previousValueField: 'compare'
+    previousValueField: 'compare',
+    lastRunData: {
+      current: 40931284,
+      compare: 82033000,
+      dod: -50.1
+    }
   },
   displayConfig: {
     showTooltip: true,
-    tooltipInfo: "Total value of successful transactions, including taxes but excluding refunds.\n● Latency: realtime\n● Log type: register/login\n● Source: in-game",
-    showLatestUpdatedTime: false,
+    tooltipInfo: "Total value of successful transactions, including taxes but excluding refunds.\n● Latency: realtime\n● Source: in-game database",
+    showLatestUpdatedTime: true,
     showComparisonMode: true,
     showPreviousValue: true,
     layout: {
       height: 118,
-      padding: 10,
+      padding: 12,
       horizontalAlignment: 'Left',
       verticalAlignment: 'Middle',
       contentPadding: 12
@@ -89,13 +103,17 @@ WHERE order_created_datetime in (date'2025-12-02',date'2025-12-01')`,
       dataType: 'Number',
       displayFormat: 'Full',
       decimalPlaces: 0,
-      useThousandsSeparator: true
+      useThousandsSeparator: true,
+      prefix: '',
+      suffix: ''
     },
     style: {
       backgroundColor: '#FFFFFF',
       titleColor: '#1D293D',
       valueColor: '#1D293D',
-      subTextColor: '#1D293D'
+      subTextColor: '#64748B',
+      trendUpColor: '#16A34A',
+      trendDownColor: '#DC2626'
     }
   }
 };

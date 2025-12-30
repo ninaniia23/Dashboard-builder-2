@@ -4,17 +4,28 @@ import { MetricConfig } from '../types';
 
 interface MetricCardProps {
   config: MetricConfig;
-  previewValue?: string;
-  previewTrend?: number;
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ 
-  config, 
-  previewValue = "40.931.284", 
-  previewTrend = -50.1 
-}) => {
-  const { displayConfig, name } = config;
+const MetricCard: React.FC<MetricCardProps> = ({ config }) => {
+  const { displayConfig, dataConfig, name } = config;
   const [showTooltip, setShowTooltip] = useState(false);
+
+  const formatValue = (val: number) => {
+    let formatted = val.toFixed(displayConfig.formatting.decimalPlaces);
+    if (displayConfig.formatting.useThousandsSeparator) {
+      formatted = parseFloat(formatted).toLocaleString('vi-VN');
+    }
+    if (displayConfig.formatting.displayFormat === 'Compact') {
+      if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'B';
+      if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+      if (val >= 1000) return (val / 1000).toFixed(1) + 'K';
+    }
+    return `${displayConfig.formatting.prefix}${formatted}${displayConfig.formatting.suffix}`;
+  };
+
+  const currentVal = dataConfig.lastRunData?.current || 0;
+  const prevVal = dataConfig.lastRunData?.compare || 0;
+  const trend = dataConfig.lastRunData?.dod || 0;
 
   const containerStyle: React.CSSProperties = {
     backgroundColor: displayConfig.style.backgroundColor,
@@ -27,10 +38,11 @@ const MetricCard: React.FC<MetricCardProps> = ({
     alignItems: displayConfig.layout.horizontalAlignment === 'Left' ? 'flex-start' :
                 displayConfig.layout.horizontalAlignment === 'Center' ? 'center' : 'flex-end',
     position: 'relative',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    borderRadius: '8px',
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+    borderRadius: '12px',
     border: '1px solid #E2E8F0',
     width: '100%',
+    transition: 'all 0.2s ease-in-out',
   };
 
   const titleStyle: React.CSSProperties = {
@@ -38,40 +50,42 @@ const MetricCard: React.FC<MetricCardProps> = ({
     fontWeight: displayConfig.typography.titleWeight === 'Regular' ? 400 : 
                  displayConfig.typography.titleWeight === 'Medium' ? 500 : 600,
     color: displayConfig.style.titleColor,
-    marginBottom: '4px',
+    marginBottom: '2px',
     display: 'flex',
     alignItems: 'center',
+    textAlign: displayConfig.layout.horizontalAlignment.toLowerCase() as any,
   };
 
   const valueStyle: React.CSSProperties = {
     fontSize: `${displayConfig.typography.valueSize}px`,
     fontWeight: displayConfig.typography.valueWeight === 'Semi-bold' ? 600 : 700,
     color: displayConfig.style.valueColor,
+    lineHeight: '1.2',
   };
 
   const trendStyle: React.CSSProperties = {
     fontSize: `${displayConfig.typography.comparisonSize}px`,
-    color: previewTrend < 0 ? '#DC2626' : '#16A34A',
+    color: trend < 0 ? displayConfig.style.trendDownColor : displayConfig.style.trendUpColor,
     display: 'flex',
     alignItems: 'center',
     marginTop: '4px',
   };
 
   return (
-    <div style={containerStyle} className="group transition-all hover:border-blue-400">
+    <div style={containerStyle} className="group hover:shadow-lg hover:border-blue-300">
       <div style={titleStyle}>
         {name}
         {displayConfig.showTooltip && (
-          <div className="relative ml-1.5">
+          <div className="relative ml-2 inline-flex items-center">
             <i 
-              className="fa-regular fa-circle-question text-slate-300 cursor-help"
+              className="fa-regular fa-circle-question text-slate-300 cursor-help hover:text-slate-500 transition-colors"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
             ></i>
             {showTooltip && (
-              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 w-64 p-3 bg-slate-800 text-white text-[11px] rounded shadow-xl leading-relaxed whitespace-pre-wrap pointer-events-none">
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 w-56 p-2.5 bg-slate-800 text-white text-[11px] rounded-lg shadow-2xl leading-relaxed whitespace-pre-wrap">
                 {displayConfig.tooltipInfo}
-                <div className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-right-8 border-r-slate-800"></div>
+                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-800"></div>
               </div>
             )}
           </div>
@@ -79,22 +93,27 @@ const MetricCard: React.FC<MetricCardProps> = ({
       </div>
 
       <div style={valueStyle}>
-        {previewValue}
+        {formatValue(currentVal)}
       </div>
 
       {displayConfig.showComparisonMode && (
         <div style={trendStyle}>
-          <i className={`fa-solid fa-caret-${previewTrend < 0 ? 'down' : 'up'} mr-1`}></i>
-          <span className="font-bold">{Math.abs(previewTrend)}%</span>
+          <div className={`flex items-center px-1.5 py-0.5 rounded ${trend < 0 ? 'bg-red-50' : 'bg-green-50'} mr-1.5`}>
+            <i className={`fa-solid fa-caret-${trend < 0 ? 'down' : 'up'} mr-1 text-[10px]`}></i>
+            <span className="font-bold">{Math.abs(trend).toFixed(1)}%</span>
+          </div>
           {displayConfig.showPreviousValue && (
-            <span className="text-slate-400 ml-1 font-normal">vs prev. (80.33M)</span>
+            <span style={{color: displayConfig.style.subTextColor}} className="text-[11px] opacity-70">
+              vs prev. ({formatValue(prevVal)})
+            </span>
           )}
         </div>
       )}
 
       {displayConfig.showLatestUpdatedTime && (
-        <div className="absolute bottom-2 right-2 text-[9px] text-slate-400">
-          Updated 2m ago
+        <div className="absolute top-3 right-3 flex items-center space-x-1 opacity-40 group-hover:opacity-100 transition-opacity">
+           <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+           <span className="text-[9px] text-slate-500 font-medium">Live</span>
         </div>
       )}
     </div>
