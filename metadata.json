@@ -1,0 +1,5 @@
+{
+  "name": "Nexus Dashboard Configurator",
+  "description": "A professional dashboard and metric card configuration tool inspired by the Nexus UI, allowing users to define data sources, write SQL queries, and customize visual styles with live previews.",
+  "requestFramePermissions": []
+}
